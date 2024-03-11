@@ -3,58 +3,64 @@ package main
 import (
 	"context"
 	"database/sql"
-	"flag"
+	"fmt"
 	"os"
 	"time"
 
+	"github.com/caarlos0/env/v10"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/mhakash/greenlight/internal/data"
 	"github.com/mhakash/greenlight/internal/jsonlog"
+	"github.com/mhakash/greenlight/internal/mailer"
 )
 
 const version = "1.0.0"
 
-type config struct {
-	port int
-	env  string
-	db   struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  string
+// visibility of fields needs to be public for env.Parse to work
+type Config struct {
+	Port int    `env:"PORT" envDefault:"4000"`
+	Env  string `env:"ENV" envDefault:"development"`
+	DB   struct {
+		DSN          string `env:"DB_DSN"`
+		MaxOpenConns int    `env:"DB_MAX_OPEN_CONNS" envDefault:"25"`
+		MaxIdleConns int    `env:"DB_MAX_IDLE_CONNS" envDefault:"25"`
+		MaxIdleTime  string `env:"DB_MAX_IDLE_TIME" envDefault:"15m"`
 	}
-	limiter struct {
-		rps     float64
-		burst   int
-		enabled bool
+	Limiter struct {
+		Rps     float64 `env:"LIMITER_RPS" envDefault:"2"`
+		Burst   int     `env:"LIMITER_BURST" envDefault:"4"`
+		Enabled bool    `env:"LIMITER_ENABLED" envDefault:"true"`
+	}
+	SMTP struct {
+		Host     string `env:"SMTP_HOST"`
+		Port     int    `env:"SMTP_PORT"`
+		Username string `env:"SMTP_USERNAME"`
+		Password string `env:"SMTP_PASSWORD"`
+		Sender   string `env:"SMTP_SENDER"`
 	}
 }
 
 type application struct {
-	config config
+	config Config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
-	var cfg config
-
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "development|staging|production")
-
-	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("GREENLIGHT_DB_DSN"), "PostgreSQL DSN")
-
-	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
-	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
-	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
-
-	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
-	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
-	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
-
-	flag.Parse()
-
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+
+	err := godotenv.Load()
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
+
+	cfg := Config{}
+	err = env.Parse(&cfg)
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
 
 	db, err := openDb(cfg)
 	if err != nil {
@@ -68,6 +74,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, cfg.SMTP.Sender),
 	}
 
 	err = app.serve()
@@ -76,16 +83,17 @@ func main() {
 	}
 }
 
-func openDb(cfg config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.db.dsn)
+func openDb(cfg Config) (*sql.DB, error) {
+	fmt.Println(cfg.DB.DSN)
+	db, err := sql.Open("postgres", cfg.DB.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	db.SetMaxOpenConns(cfg.db.maxOpenConns)
-	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	db.SetMaxOpenConns(cfg.DB.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.DB.MaxIdleConns)
 
-	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
+	duration, err := time.ParseDuration(cfg.DB.MaxIdleTime)
 	if err != nil {
 		return nil, err
 	}

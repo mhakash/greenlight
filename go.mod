@@ -7,6 +7,15 @@ require (
 	github.com/lib/pq v1.10.9
 )
 
-require golang.org/x/time v0.5.0
+require (
+	github.com/caarlos0/env/v10 v10.0.0
+	github.com/go-mail/mail/v2 v2.3.0
+	github.com/joho/godotenv v1.5.1
+	golang.org/x/crypto v0.21.0
+	golang.org/x/time v0.5.0
+)
 
-require golang.org/x/crypto v0.21.0 // indirect
+require (
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
+)
