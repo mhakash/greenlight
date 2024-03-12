@@ -39,6 +39,9 @@ type Config struct {
 		Password string `env:"SMTP_PASSWORD"`
 		Sender   string `env:"SMTP_SENDER"`
 	}
+	Cors struct {
+		TrustedOrigins []string `env:"CORS_TRUSTED_ORIGINS" envSeparator:" "`
+	}
 }
 
 type application struct {
@@ -50,7 +53,7 @@ type application struct {
 }
 
 func main() {
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelError)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	err := godotenv.Load()
 	if err != nil {
