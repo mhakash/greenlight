@@ -50,7 +50,7 @@ type application struct {
 }
 
 func main() {
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelError)
 
 	err := godotenv.Load()
 	if err != nil {
