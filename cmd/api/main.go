@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -86,7 +85,6 @@ func main() {
 }
 
 func openDb(cfg Config) (*sql.DB, error) {
-	fmt.Println(cfg.DB.DSN)
 	db, err := sql.Open("postgres", cfg.DB.DSN)
 	if err != nil {
 		return nil, err
