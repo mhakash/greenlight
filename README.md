@@ -10,3 +10,4 @@ Building full fledged web api application using golang Inspired by the book `let
 - send email
 - rate limiter
 - panic recovery
+- user activation

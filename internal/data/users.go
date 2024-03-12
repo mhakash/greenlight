@@ -55,15 +55,15 @@ func (p *password) Matches(plainPassword string) (bool, error) {
 		}
 	}
 
-	return false, nil
+	return true, nil
 }
 
-func validateEmail(v *validator.Validator, email string) {
+func ValidateEmail(v *validator.Validator, email string) {
 	v.Check(email != "", "email", "must be provided")
 	v.Check(validator.Matches(email, validator.EmailRx), "email", "must be a valid email address")
 }
 
-func validatePasswordPlainText(v *validator.Validator, passwordPlain string) {
+func ValidatePasswordPlainText(v *validator.Validator, passwordPlain string) {
 	v.Check(passwordPlain != "", "password", "must be provided")
 	v.Check(len(passwordPlain) >= 8, "password", "must be at least 8 bytes long")
 	v.Check(len(passwordPlain) <= 72, "password", "must not be more than 72 bytes long")
@@ -73,10 +73,10 @@ func ValidateUser(v *validator.Validator, user *User) {
 	v.Check(user.Name != "", "name", "must be provided")
 	v.Check(len(user.Name) <= 500, "name", "must not be more than 500 bytes long")
 
-	validateEmail(v, user.Email)
+	ValidateEmail(v, user.Email)
 
 	if user.Password.plaintext != nil {
-		validatePasswordPlainText(v, *user.Password.plaintext)
+		ValidatePasswordPlainText(v, *user.Password.plaintext)
 	}
 
 	if user.Password.hash == nil {
@@ -123,6 +123,7 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 		&user.ID,
 		&user.CreatedAt,
 		&user.Name,
+		&user.Email,
 		&user.Password.hash,
 		&user.Activated,
 		&user.Version,
